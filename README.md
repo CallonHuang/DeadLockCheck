@@ -5,3 +5,4 @@
 - list.c             ： 双向链表，尾节点会循环回链表头
 - list.h             ： 链表的结点定义和函数声明
 - main.c             ： 测试demo，有两种类型的demo（双死锁和死锁后访问），通过CONFIG_DOUBLE_DEAD_LOCK来配置
+- build.sh           ： 懒于写Makefile而写的简单编译脚本，动态库的拷贝可换成设置LD_LIBRARY_PATH环境变量来实现
