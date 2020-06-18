@@ -121,18 +121,18 @@ static void AfterLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
 
 int LockWithRecord(pthread_mutex_t *lockAddr, pid_t pid, int lockType, struct timespec *timeOut)
 {
-    int iRet;  
+    int ret;  
     void *retFuncAddr = __builtin_return_address(0);
     BeforeLock(lockAddr, pid, retFuncAddr);
     if (2 == lockType) {
-        iRet = pthread_mutex_trylock(lockAddr);
+        ret = pthread_mutex_trylock(lockAddr);
     } else if (1 == lockType) {
-        iRet = pthread_mutex_timedlock(lockAddr, timeOut);
+        ret = pthread_mutex_timedlock(lockAddr, timeOut);
     } else {
-        iRet = pthread_mutex_lock(lockAddr);
+        ret = pthread_mutex_lock(lockAddr);
     }
 
-    if (OK != iRet) {
+    if (OK != ret) {
         DEAD_LOCK_INFO *currNode;
         unsigned int requestIndex = Hash32((unsigned long)pid, MAX_HASH_BITS);
         pthread_mutex_lock(&lockRecordMutex);
@@ -154,7 +154,7 @@ int LockWithRecord(pthread_mutex_t *lockAddr, pid_t pid, int lockType, struct ti
         AfterLock(lockAddr, pid, retFuncAddr);
     }
     
-    return iRet;
+    return ret;
 }
 
 /*
@@ -184,11 +184,11 @@ static void AfterUnlock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
 int UnlockWithRecord(pthread_mutex_t *lockAddr, pid_t pid)
 {
     void *retFuncAddr = __builtin_return_address(0);
-    int iRet = pthread_mutex_unlock(lockAddr);
-    if (OK == iRet) {
+    int ret = pthread_mutex_unlock(lockAddr);
+    if (OK == ret) {
         AfterUnlock(lockAddr, pid, retFuncAddr);
     }
-    return iRet;
+    return ret;
 }
 
 /*insert a node to traceStackList, that record your access footprint*/
@@ -253,10 +253,10 @@ static int SelectRequest(int *visitArray)
 */
 static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_INFO **targetNode, int visitKey)
 {
-    int iRet = NOT_FOUND;
+    int ret = NOT_FOUND;
     LIST_FOR_EACH(DEAD_LOCK_INFO, (*targetNode), requestTable[requestIndex].list) {
         if (UNSPECIFIED_PID == pid) {
-            iRet = NOT_FOUND;
+            ret = NOT_FOUND;
             /*must be has unvisited node*/
             if (UNVISITED == ((*targetNode)->visitTag & VISIT_BITMASK)) {
                 (*targetNode)->visitTag = (visitKey << VISIT_KEY_OFFSET | VISIT_BITMASK);
@@ -268,21 +268,21 @@ static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_
                     (*targetNode)->visitTag = (visitKey << VISIT_KEY_OFFSET | VISIT_BITMASK);
                 } else {
                     if ((*targetNode)->visitTag >> VISIT_KEY_OFFSET == visitKey) {
-                        iRet = REVISITED;
+                        ret = REVISITED;
                     } else {
-                        iRet = VISITED_BEFORE;
+                        ret = VISITED_BEFORE;
                     }
                 }
                 break;
             } else {
-                iRet = NOT_FOUND;
+                ret = NOT_FOUND;
             }
         }
         
     }
     /*find the last but 'NOT_FOUND' or returned the node that you visit before*/
-    if (*targetNode == (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node || 0 > iRet) {
-        return iRet;
+    if (*targetNode == (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node || 0 > ret) {
+        return ret;
     }
     visitArray[requestIndex]++;
     return OK;
@@ -304,11 +304,11 @@ static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_
 static int RequestTrace(int requestIndex, int *visitArray, int visitKey)
 {
     DEAD_LOCK_INFO *targetNode = NULL, *currNode = NULL, traceStackList;
-    int ownerIndex = 0, iRet = OK;
+    int ownerIndex = 0, ret = OK;
     pid_t pid = UNSPECIFIED_PID;
     ListInit(&traceStackList.list);
     do {
-        if (OK != (iRet = VisitRequest(requestIndex, pid, visitArray, &targetNode, visitKey))) {
+        if (OK != (ret = VisitRequest(requestIndex, pid, visitArray, &targetNode, visitKey))) {
             if (UNSPECIFIED_PID == pid) {
                 /*to prevent you use the same requestIndex again and again*/
                 visitArray[requestIndex] = requestTable[requestIndex].list.count;
@@ -317,7 +317,7 @@ static int RequestTrace(int requestIndex, int *visitArray, int visitKey)
             if (NULL != currNode) {
                 InsertStack(&traceStackList, currNode->pid, currNode->lockAddr, currNode->retFuncAddr);
             }
-            if (NOT_FOUND == iRet || VISITED_BEFORE == iRet) {
+            if (NOT_FOUND == ret || VISITED_BEFORE == ret) {
                 printf("request wait owner as below:\n");
             } else {
                 printf("find lock circle as below:\n");
@@ -344,12 +344,12 @@ static int RequestTrace(int requestIndex, int *visitArray, int visitKey)
             requestIndex = Hash32((unsigned long)currNode->pid, MAX_HASH_BITS);
         } else {
             /*request is valid, no owner exist*/
-            iRet = NOT_FOUND;
+            ret = NOT_FOUND;
             break;
         }
     } while (1);
     ListDestroy(&traceStackList.list);
-    return iRet;
+    return ret;
 }
 
 void PrtRecord()
