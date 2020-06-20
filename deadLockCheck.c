@@ -1,5 +1,5 @@
 #include "deadLockInternal.h"
-#include "lockMemMng.h"
+#include "memMng.h"
 #include <string.h>
 #include <malloc.h>
 #include <stdio.h>
