@@ -13,7 +13,7 @@ typedef struct {
     LIST list;
     /* data */
     void * memAddr;
-} DEAD_LOCK_MEM_INFO;
+} MEM_MANAGER_INFO;
 
 void memMngInit(size_t everyMemSize);
 void * AllocMemUnit(void);
