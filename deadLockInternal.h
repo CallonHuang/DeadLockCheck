@@ -14,7 +14,6 @@ extern "C" {
 #define MAX_HASH_BITS  (6)
 #define MAX_REQUEST_TABLE  (1<<MAX_HASH_BITS)
 #define MAX_OWNER_TABLE (1<<MAX_HASH_BITS)
-#define MAX_MEM_MANAGER MAX_REQUEST_TABLE
 /* 2^31 + 2^29 - 2^25 + 2^22 - 2^19 - 2^16 + 1 */
 #define GOLDEN_RATIO_PRIME_32 (0x9e370001UL)
 
@@ -40,12 +39,6 @@ typedef struct {
     pid_t pid;
     void * retFuncAddr;
 } DEAD_LOCK_INFO;
-
-typedef struct {
-    LIST list;
-    /* data */
-    void * memAddr;
-} DEAD_LOCK_MEM_INFO;
 
 static inline unsigned int Hash32(unsigned long val, unsigned int bits)
 {

@@ -1,4 +1,5 @@
 #include "deadLockInternal.h"
+#include "lockMemMng.h"
 #include <string.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -6,11 +7,6 @@
 static DEAD_LOCK_INFO requestTable[MAX_REQUEST_TABLE];
 static DEAD_LOCK_INFO ownerTable[MAX_OWNER_TABLE];
 static pthread_mutex_t lockRecordMutex = PTHREAD_MUTEX_INITIALIZER;
-
-static DEAD_LOCK_MEM_INFO memAlloc;
-static DEAD_LOCK_MEM_INFO memFree;
-static pthread_mutex_t memListMutex = PTHREAD_MUTEX_INITIALIZER;
-static void *memStart;
 
 __attribute__((constructor)) void DeadLockCheckInit(void)
 {
@@ -23,52 +19,7 @@ __attribute__((constructor)) void DeadLockCheckInit(void)
     for (i = 0; i < MAX_OWNER_TABLE; i++) {
         ListInit(&ownerTable[i].list);
     }
-    ListInit(&memFree.list);
-    ListInit(&memAlloc.list);
-    memStart = malloc(sizeof(DEAD_LOCK_INFO) * MAX_MEM_MANAGER);
-    for (i = 0; i < MAX_MEM_MANAGER; i++) {
-        DEAD_LOCK_MEM_INFO* newNode;
-        newNode = (DEAD_LOCK_MEM_INFO *)malloc (sizeof(DEAD_LOCK_MEM_INFO));
-        newNode->memAddr = memStart+i*sizeof(DEAD_LOCK_INFO);
-        ListAddTail(&memFree.list, (NODE *)newNode);
-    }
-}
-
-static void * AllocDeadLockInfo()
-{
-    DEAD_LOCK_MEM_INFO *memInfo = NULL;
-    void * retAddr = NULL;
-    pthread_mutex_lock(&memListMutex);
-    if (memFree.list.count > 0) {
-        memInfo = (DEAD_LOCK_MEM_INFO *)memFree.list.node.next;
-        ListDelete(&memFree.list, (NODE *)memInfo);
-        ListAddTail(&memAlloc.list, (NODE *)memInfo);
-        pthread_mutex_unlock(&memListMutex);
-        retAddr = memInfo->memAddr;
-    } else {
-        pthread_mutex_unlock(&memListMutex);
-        retAddr = malloc(sizeof(DEAD_LOCK_INFO));
-    }
-    
-    return retAddr;
-}
-
-static void FreeDeadLockInfo(void *memAddr)
-{
-    DEAD_LOCK_MEM_INFO *currNode;
-    if (memAddr >= memStart && memAddr <= memStart+(MAX_MEM_MANAGER-1)*sizeof(DEAD_LOCK_INFO)) {
-        pthread_mutex_lock(&memListMutex);
-        LIST_FOR_EACH(DEAD_LOCK_MEM_INFO, currNode, memAlloc.list) {
-            if (currNode->memAddr == memAddr) {
-                ListDelete(&memAlloc.list, (NODE *)currNode);
-                ListAddTail(&memFree.list, (NODE *)currNode);
-                break;
-            }
-        }
-        pthread_mutex_unlock(&memListMutex);
-    } else {
-        free(memAddr);
-    }
+    LockMemInit(sizeof(DEAD_LOCK_INFO));
 }
 
 /*
@@ -78,7 +29,7 @@ static void BeforeLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
 {
     DEAD_LOCK_INFO *newNode;
     unsigned int requestIndex;
-    newNode = (DEAD_LOCK_INFO *)AllocDeadLockInfo();
+    newNode = (DEAD_LOCK_INFO *)AllocMemUnit();
     requestIndex = Hash32((unsigned long)pid, MAX_HASH_BITS);
     newNode->lockAddr = (void *)lockAddr;
     newNode->pid = pid;
@@ -97,7 +48,7 @@ static void AfterLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     DEAD_LOCK_INFO *currNode;
     unsigned int requestIndex = Hash32((unsigned long)pid, MAX_HASH_BITS);
     unsigned int ownerIndex = Hash32((unsigned long)lockAddr, MAX_HASH_BITS);
-    newNode = (DEAD_LOCK_INFO *)AllocDeadLockInfo();
+    newNode = (DEAD_LOCK_INFO *)AllocMemUnit();
     newNode->pid = pid;
     newNode->lockAddr = (void *)lockAddr;
     newNode->retFuncAddr = retFuncAddr;
@@ -112,7 +63,7 @@ static void AfterLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     if (currNode != (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node) {
         ListDelete(&requestTable[requestIndex].list, (NODE *)currNode);
         pthread_mutex_unlock(&lockRecordMutex);
-        FreeDeadLockInfo(currNode);
+        FreeMemUnit(currNode);
     } else {
         pthread_mutex_unlock(&lockRecordMutex);
     }
@@ -145,7 +96,7 @@ int LockWithRecord(pthread_mutex_t *lockAddr, pid_t pid, int lockType, struct ti
         if (currNode != (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node) {
             ListDelete(&requestTable[requestIndex].list, (NODE *)currNode);
             pthread_mutex_unlock(&lockRecordMutex);
-            FreeDeadLockInfo(currNode);
+            FreeMemUnit(currNode);
         } else {
             pthread_mutex_unlock(&lockRecordMutex);
         }
@@ -174,7 +125,7 @@ static void AfterUnlock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     if (currNode != (DEAD_LOCK_INFO *)&ownerTable[ownerIndex].list.node) {
         ListDelete(&ownerTable[ownerIndex].list, (NODE *)currNode);
         pthread_mutex_unlock(&lockRecordMutex);
-        FreeDeadLockInfo(currNode);
+        FreeMemUnit(currNode);
     } else {
         pthread_mutex_unlock(&lockRecordMutex);
     }
@@ -359,7 +310,7 @@ void PrtRecord()
     int visitArray[MAX_REQUEST_TABLE] = {0};
     DEAD_LOCK_INFO *currNode;
     printf("-----------------------------------------\n");
-    printf("free rest count: %d, alloc used count: %d\n", memFree.list.count, memAlloc.list.count);
+    printf("free rest count: %d, alloc used count: %d\n", getMemFreeCount(), getMemAllocCount());
     ClearRequestVisit();
     printf("-----------------------------------------\n");
     printf("request As Bellow:\n");

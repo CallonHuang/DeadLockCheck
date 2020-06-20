@@ -1,8 +1,9 @@
 #!/bin/bash
 
 gcc -Wall -g -O -fPIC -I./ -c list.c -o list.o
+gcc -Wall -g -O -fPIC -I./ -c lockMemMng.c -o lockMemMng.o
 gcc -Wall -g -O -fPIC -I./ -c deadLockCheck.c -o deadLockCheck.o
-gcc -Wall -g -shared -fPIC -o libDeadLockCheck.so deadLockCheck.o list.o -lpthread
+gcc -Wall -g -shared -fPIC -o libDeadLockCheck.so deadLockCheck.o lockMemMng.o list.o -lpthread
 if [ $? -ne 0 ];then
     exit -1;
 fi
