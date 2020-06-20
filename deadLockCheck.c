@@ -19,7 +19,7 @@ __attribute__((constructor)) void DeadLockCheckInit(void)
     for (i = 0; i < MAX_OWNER_TABLE; i++) {
         ListInit(&ownerTable[i].list);
     }
-    LockMemInit(sizeof(DEAD_LOCK_INFO));
+    memMngInit(sizeof(DEAD_LOCK_INFO));
 }
 
 /*

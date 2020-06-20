@@ -1,4 +1,4 @@
-#include "lockMemMng.h"
+#include "memMng.h"
 #include <malloc.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -9,7 +9,7 @@ static pthread_mutex_t memListMutex = PTHREAD_MUTEX_INITIALIZER;
 static void *memStart;
 static size_t memUnitSize = 0;
 
-void LockMemInit(size_t everyMemSize)
+void memMngInit(size_t everyMemSize)
 {
     int i = 0;
     ListInit(&memFree.list);

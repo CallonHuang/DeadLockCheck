@@ -7,7 +7,7 @@ extern "C" {
 
 #include "list.h"
 
-#define MAX_MEM_MANAGER (128)
+#define MAX_MEM_MANAGER (1<<6)
 
 typedef struct {
     LIST list;
@@ -15,7 +15,7 @@ typedef struct {
     void * memAddr;
 } DEAD_LOCK_MEM_INFO;
 
-void LockMemInit(size_t everyMemSize);
+void memMngInit(size_t everyMemSize);
 void * AllocMemUnit(void);
 void FreeMemUnit(void *memAddr);
 int getMemFreeCount(void);
