@@ -20,9 +20,7 @@ static void DeadLockCheckInit(void)
     memMngInit(sizeof(DEAD_LOCK_INFO));
 }
 
-/*
-    brief: record the lock info to requestTable
-*/
+/*brief: record the lock info to requestTable*/
 static void BeforeLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
 {
     DEAD_LOCK_INFO *newNode;
@@ -37,9 +35,7 @@ static void BeforeLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     pthread_mutex_unlock(&lockRecordMutex);
 }
 
-/*
-    brief: clear the lock info in requestTable, record the lock info to ownerTable
-*/
+/*brief: clear the lock info in requestTable, record the lock info to ownerTable*/
 static void AfterLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
 {
     DEAD_LOCK_INFO *newNode, *currNode;
@@ -102,9 +98,7 @@ int LockWithRecord(pthread_mutex_t *lockAddr, pid_t pid, int lockType, struct ti
     return ret;
 }
 
-/*
-    brief: clear the lock info in ownerTable
-*/
+/*brief: clear the lock info in ownerTable*/
 static void AfterUnlock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
 {
     DEAD_LOCK_INFO *currNode;
@@ -160,12 +154,12 @@ static void ClearRequestVisit()
 }
 
 /*
-    part of algorithm to find lock circle
-    brief: select a request list which has some node not visited.
-    param:
-        [in]visitArray : for [SelectRequest] run fast, visitArray can sign the number of visited node(of the index of request list)
-    return:
-        requestIndex : the index of request list which has some node not be visited 
+    *part of algorithm to find lock circle
+    *brief: select a request list which has some node not visited.
+    *param:
+    *    [in]visitArray : for [SelectRequest] run fast, visitArray can sign the number of visited node(of the index of request list)
+    *return:
+    *    requestIndex : the index of request list which has some node not be visited 
 */
 static int SelectRequest(int *visitArray)
 {
@@ -178,19 +172,19 @@ static int SelectRequest(int *visitArray)
 }
 
 /*
-    part of algorithm to find lock circle
-    brief: visit the specified request list, you will get return 'REVISITED'/'NOT_FOUND'/'OK', 'REVISITED' means you turned back
-    param:
-        [in]requestIndex   : sign the index of request list that you should visit
-        [in]pid            : sign the pid that you need find, if 'UNSPECIFIED_PID', you can ignore it
-        [in&out]visitArray : for [SelectRequest] run fast, visitArray can sign the number of visited node(of the index of request list)
-        [out]targetNode    : the pointer of the target that meet your condition in the request list
-        [in]visitID       : to sign every [RequestTrace], use to decide return 'VISITED_BEFORE' or 'REVISITED'
-    return:
-        'NOT_FOUND'      : the owner is not requesting now / no more unvisited node of the index of request list
-        'REVISITED'      : in the same [RequestTrace], you returned the node that you visit before
-        'VISITED_BEFORE' : in the different [RequestTrace], you returned the node that you visit before
-        'OK'             : visit a unvisited node in the request list successfully
+    *part of algorithm to find lock circle
+    *brief: visit the specified request list, you will get return 'REVISITED'/'NOT_FOUND'/'OK', 'REVISITED' means you turned back
+    *param:
+    *    [in]requestIndex   : sign the index of request list that you should visit
+    *    [in]pid            : sign the pid that you need find, if 'UNSPECIFIED_PID', you can ignore it
+    *    [in&out]visitArray : for [SelectRequest] run fast, visitArray can sign the number of visited node(of the index of request list)
+    *    [out]targetNode    : the pointer of the target that meet your condition in the request list
+    *    [in]visitID       : to sign every [RequestTrace], use to decide return 'VISITED_BEFORE' or 'REVISITED'
+    *return:
+    *    'NOT_FOUND'      : the owner is not requesting now / no more unvisited node of the index of request list
+    *    'REVISITED'      : in the same [RequestTrace], you returned the node that you visit before
+    *    'VISITED_BEFORE' : in the different [RequestTrace], you returned the node that you visit before
+    *    'OK'             : visit a unvisited node in the request list successfully
 */
 static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_INFO **targetNode, int visitID)
 {
@@ -229,17 +223,16 @@ static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_
 }
 
 /*
-    part of algorithm to find lock circle
-    brief: traverse request list and owner list, to find the relation path
-    param:
-        [in]requestIndex    : [SelectRequest] returned the index of request list which has some node not be visited
-        [in&out]visitArray  : for [SelectRequest] run fast, visitArray can sign the number of visited node(of the index of request list)
-        [in]visitID        : to sign every [RequestTrace], if [VisitRequest] returned 'VISITED_BEFORE', means you returned the node that you visit in before [RequestTrace]
-    return: 
-        'NOT_FOUND'      : the owner is not requesting now / no more unvisited node of the index of request list
-        'VISITED_BEFORE' : in the different [RequestTrace], you returned the node that you visit before
-        'REVISITED'      : in the same [RequestTrace], you returned the node that you visit before
-
+    *part of algorithm to find lock circle
+    *brief: traverse request list and owner list, to find the relation path
+    *param:
+    *    [in]requestIndex    : [SelectRequest] returned the index of request list which has some node not be visited
+    *    [in&out]visitArray  : for [SelectRequest] run fast, visitArray can sign the number of visited node(of the index of request list)
+    *    [in]visitID        : to sign every [RequestTrace], if [VisitRequest] returned 'VISITED_BEFORE', means you returned the node that you visit in before [RequestTrace]
+    *return: 
+    *    'NOT_FOUND'      : the owner is not requesting now / no more unvisited node of the index of request list
+    *    'VISITED_BEFORE' : in the different [RequestTrace], you returned the node that you visit before
+    *    'REVISITED'      : in the same [RequestTrace], you returned the node that you visit before
 */
 static int RequestTrace(int requestIndex, int *visitArray, int visitID)
 {
