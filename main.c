@@ -53,7 +53,7 @@ void *thread_func4(void *param)
     memset (&tout, 0, sizeof(tout));
     tout.tv_sec += 10;
     while(1) {
-        #ifdef CONFIG_DOUBLE_DEAD_LOCK
+#ifdef CONFIG_DOUBLE_DEAD_LOCK
         if (0 == pthread_mutex_trylock(&mutex_value4)) {
             sleep(1);
             if (0 == pthread_mutex_timedlock(&mutex_value1, &tout)) {
@@ -62,9 +62,9 @@ void *thread_func4(void *param)
             pthread_mutex_lock(&mutex_value4);
             pthread_mutex_unlock(&mutex_value4);
         }   
-        #else
+#else
         pthread_mutex_lock(&mutex_value3);
-        #endif
+#endif
         sleep(1);
     }
 }
@@ -82,9 +82,9 @@ int main()
     pthread_create(&t1, NULL, thread_func1, NULL);
     pthread_create(&t2, NULL, thread_func2, NULL);
     pthread_create(&t3, NULL, thread_func3, NULL);
-    #ifndef CONFIG_DOUBLE_DEAD_LOCK
+#ifndef CONFIG_DOUBLE_DEAD_LOCK
     sleep(5);
-    #endif
+#endif
     pthread_create(&t4, NULL, thread_func4, NULL);
     
     
