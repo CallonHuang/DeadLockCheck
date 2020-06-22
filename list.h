@@ -1,5 +1,10 @@
 #ifndef _LIST_H_
 #define _LIST_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h>
 
 typedef struct node
@@ -28,4 +33,7 @@ void ListAddTail(LIST *list, NODE *node);
 void ListDelete(LIST *list, NODE *node);
 void ListDestroy(LIST *list);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
