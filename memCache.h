@@ -1,5 +1,5 @@
-#ifndef _LOCK_MEM_MNG_H_
-#define _LOCK_MEM_MNG_H_
+#ifndef _MEM_CACHE_H_
+#define _MEM_CACHE_H_
 
 #ifdef __cplusplus
 extern "C" {
