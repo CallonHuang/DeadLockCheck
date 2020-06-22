@@ -4,8 +4,8 @@
 
 typedef struct node
 {
-	struct node * next;
-	struct node * prev;
+	struct node *next;
+	struct node *prev;
 }NODE;
 
 typedef struct
@@ -18,11 +18,11 @@ typedef struct
 for (cur = (TYPE *)list_struct.node.next; cur != (TYPE *)&list_struct.node; cur = (TYPE *)cur->list.node.next)
 
 #define LIST_FREE_NODE(list, node) do{                                  \
-                                        ListDelete(list, (NODE *)node);\
+                                        ListDelete(list, (NODE *)node); \
                                         free(node);                     \
                                     }while(0)
 
-void ListInit(LIST* list);
+void ListInit(LIST *list);
 void ListInsert(LIST *list, NODE *node, NODE *next);
 void ListAddTail(LIST *list, NODE *node);
 void ListDelete(LIST *list, NODE *node);

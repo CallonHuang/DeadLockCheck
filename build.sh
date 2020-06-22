@@ -1,11 +1,11 @@
 #!/bin/bash
 
 gcc -Wall -g -O -fPIC -I./ -c list.c -o list.o
-gcc -Wall -g -O -fPIC -I./ -c memMng.c -o memMng.o
+gcc -Wall -g -O -fPIC -I./ -c memCache.c -o memCache.o
 gcc -Wall -g -O -fPIC -I./ -c deadLockCheck.c -o deadLockCheck.o
-gcc -Wall -g -shared -fPIC -o libDeadLockCheck.so deadLockCheck.o memMng.o list.o -lpthread
+gcc -Wall -g -shared -fPIC -o libDeadLockCheck.so deadLockCheck.o memCache.o list.o -lpthread
 if [ $? -ne 0 ];then
     exit -1;
 fi
-#sudo cp libDeadLockCheck.so /usr/lib
+sudo cp libDeadLockCheck.so /usr/lib
 gcc -g -Wall main.c -L./ -o main -lDeadLockCheck -lpthread

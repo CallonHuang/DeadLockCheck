@@ -71,7 +71,7 @@ void *thread_func4(void *param)
 
 int main()
 {
-    pthread_t t1,t2,t3,t4;
+    pthread_t t1, t2, t3, t4;
     char input = 0;
     pthread_mutex_init(&mutex_value1,NULL);
     pthread_mutex_init(&mutex_value2,NULL);

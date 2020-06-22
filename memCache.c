@@ -1,4 +1,4 @@
-#include "memMng.h"
+#include "memCache.h"
 #include <malloc.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -9,25 +9,25 @@ static pthread_mutex_t memListMutex = PTHREAD_MUTEX_INITIALIZER;
 static void *memStart;
 static size_t memUnitSize = 0;
 
-void memMngInit(size_t everyMemSize)
+void memMngInit(size_t unitSize)
 {
     int i = 0;
     ListInit(&memFree.list);
     ListInit(&memAlloc.list);
-    memStart = malloc(everyMemSize * MAX_MEM_MANAGER);
+    memStart = malloc(unitSize * MAX_MEM_MANAGER);
     for (i = 0; i < MAX_MEM_MANAGER; i++) {
-        MEM_MANAGER_INFO* newNode;
+        MEM_MANAGER_INFO *newNode;
         newNode = (MEM_MANAGER_INFO *)malloc (sizeof(MEM_MANAGER_INFO));
-        newNode->memAddr = memStart+i*everyMemSize;
+        newNode->memAddr = memStart + i * unitSize;
         ListAddTail(&memFree.list, (NODE *)newNode);
     }
-    memUnitSize = everyMemSize;
+    memUnitSize = unitSize;
 }
 
-void * AllocMemUnit()
+void *AllocMemUnit()
 {
     MEM_MANAGER_INFO *memInfo = NULL;
-    void * retAddr = NULL;
+    void *retAddr = NULL;
     pthread_mutex_lock(&memListMutex);
     if (memFree.list.count > 0) {
         memInfo = (MEM_MANAGER_INFO *)memFree.list.node.next;
@@ -46,7 +46,7 @@ void * AllocMemUnit()
 void FreeMemUnit(void *memAddr)
 {
     MEM_MANAGER_INFO *currNode;
-    if (memAddr >= memStart && memAddr <= memStart+(MAX_MEM_MANAGER-1)*memUnitSize) {
+    if (memAddr >= memStart && memAddr <= memStart + (MAX_MEM_MANAGER - 1) * memUnitSize) {
         pthread_mutex_lock(&memListMutex);
         LIST_FOR_EACH(MEM_MANAGER_INFO, currNode, memAlloc.list) {
             if (currNode->memAddr == memAddr) {

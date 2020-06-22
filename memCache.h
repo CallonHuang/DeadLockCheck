@@ -12,11 +12,11 @@ extern "C" {
 typedef struct {
     LIST list;
     /* data */
-    void * memAddr;
+    void *memAddr;
 } MEM_MANAGER_INFO;
 
-void memMngInit(size_t everyMemSize);
-void * AllocMemUnit(void);
+void memMngInit(size_t unitSize);
+void *AllocMemUnit(void);
 void FreeMemUnit(void *memAddr);
 int getMemFreeCount(void);
 int getMemAllocCount(void);

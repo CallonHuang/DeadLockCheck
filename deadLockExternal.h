@@ -19,7 +19,7 @@ void PrtRecord(void);
 #define pthread_mutex_timedlock(lockAddr, timeout) LockWithRecord(lockAddr, syscall(SYS_gettid), 1, timeout)
 #define pthread_mutex_trylock(lockAddr)            LockWithRecord(lockAddr, syscall(SYS_gettid), 2, 0)
 
-#define pthread_mutex_unlock(lockAddr) UnlockWithRecord(lockAddr, syscall(SYS_gettid))
+#define pthread_mutex_unlock(lockAddr)             UnlockWithRecord(lockAddr, syscall(SYS_gettid))
 
 #ifdef __cplusplus
 }

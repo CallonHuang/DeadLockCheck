@@ -35,9 +35,9 @@ typedef struct {
     LIST list;
     int visitTag;
     /* data */
-    void * lockAddr;
+    void *lockAddr;
     pid_t pid;
-    void * retFuncAddr;
+    void *retFuncAddr;
 } DEAD_LOCK_INFO;
 
 static inline unsigned int Hash32(unsigned long val, unsigned int bits)
@@ -48,6 +48,8 @@ static inline unsigned int Hash32(unsigned long val, unsigned int bits)
     /* High bits are more random, so use them. */
     return hash >> (32 - bits);
 }
+
+static void DeadLockCheckInit(void) __attribute__((constructor));
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 #include "list.h"
 
 #define LIST_HEAD list->node
-void ListInit(LIST* list)
+void ListInit(LIST *list)
 {
     LIST_HEAD.next = &LIST_HEAD;
     LIST_HEAD.prev = &LIST_HEAD;
@@ -37,5 +37,4 @@ void ListDestroy(LIST *list)
     for (node = LIST_HEAD.next; node != &LIST_HEAD; node = LIST_HEAD.next) {
         LIST_FREE_NODE(list, node);
     }
-    
 }
