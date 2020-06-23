@@ -279,38 +279,34 @@ static int RequestTrace(int requestIndex, int *visitArray, int visitID)
     return ret;
 }
 
-void PrtRecord()
+static void PrtTable(DEAD_LOCK_INFO *table, unsigned int size)
 {
-    int requestIndex = 0, ownerIndex = 0, visitID = 0;
-    /*array of each index of requestTable visited number, to sel requestIndex quickly*/
-    int visitArray[MAX_REQUEST_TABLE] = {0};
     DEAD_LOCK_INFO *currNode;
-    printf("-----------------------------------------\n");
-    printf("free rest count: %d, alloc used count: %d\n", getMemFreeCount(), getMemAllocCount());
-    ClearRequestVisit();
-    printf("-----------------------------------------\n");
-    printf("request As Bellow:\n");
-    for (requestIndex = 0; requestIndex < MAX_REQUEST_TABLE; requestIndex++) {
-        if (requestTable[requestIndex].list.count != 0) {
-            printf("[%d] ", requestIndex);
-            LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex].list) {
+    int Index = 0;
+    for (Index = 0; Index < size; Index++) {
+        if (table[Index].list.count != 0) {
+            printf("[%d] ", Index);
+            LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, table[Index].list) {
                 printf("|pid: %d addr: %p func: %p|", currNode->pid, currNode->lockAddr, currNode->retFuncAddr);
             }
             printf("\n");
         }
-        
     }
-    printf("owner As Bellow:\n");
-    for (ownerIndex = 0; ownerIndex < MAX_OWNER_TABLE; ownerIndex++) {
-        if (ownerTable[ownerIndex].list.count != 0) {
-            currNode = (DEAD_LOCK_INFO *)ownerTable[ownerIndex].list.node.next;
-            printf("[%d] ", ownerIndex);
-            LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, ownerTable[ownerIndex].list) {
-                printf("|addr: %p pid: %d func: %p|", currNode->lockAddr, currNode->pid, currNode->retFuncAddr);
-            }
-            printf("\n");
-        }
-    }
+}
+
+void PrtRecord()
+{
+    int requestIndex = 0 ,visitID = 0;
+    /*array of each index of requestTable visited number, to sel requestIndex quickly*/
+    int visitArray[MAX_REQUEST_TABLE] = {0};
+    printf("-----------------------------------------\n");
+    printf("free rest count: %d, alloc used count: %d\n", getMemFreeCount(), getMemAllocCount());
+    ClearRequestVisit();
+    printf("-----------------------------------------\n");
+    printf("request[key:pid] As Bellow:\n");
+    PrtTable(requestTable, MAX_REQUEST_TABLE);
+    printf("owner[key:addr] As Bellow:\n");
+    PrtTable(ownerTable, MAX_OWNER_TABLE);
     printf("-----------------------------------------\n");
     printf("#########################################\n");
     /*algorithm to find lock circle*/
