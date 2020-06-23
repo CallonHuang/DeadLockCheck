@@ -15,7 +15,7 @@ typedef struct {
     void *memAddr;
 } MEM_MANAGER_INFO;
 
-void memMngInit(size_t unitSize);
+void memUnitCacheInit(size_t unitSize);
 void *AllocMemUnit(void);
 void FreeMemUnit(void *memAddr);
 int getMemFreeCount(void);

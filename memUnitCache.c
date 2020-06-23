@@ -1,4 +1,4 @@
-#include "memCache.h"
+#include "memUnitCache.h"
 #include <malloc.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -9,7 +9,7 @@ static pthread_mutex_t memListMutex = PTHREAD_MUTEX_INITIALIZER;
 static void *memStart;
 static size_t memUnitSize = 0;
 
-void memMngInit(size_t unitSize)
+void memUnitCacheInit(size_t unitSize)
 {
     int i = 0;
     ListInit(&memFree.list);

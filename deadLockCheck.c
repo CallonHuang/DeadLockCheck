@@ -1,5 +1,5 @@
 #include "deadLockInternal.h"
-#include "memCache.h"
+#include "memUnitCache.h"
 #include <string.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -17,7 +17,7 @@ static void DeadLockCheckInit(void)
         ListInit(&requestTable[i].list);
     for (i = 0; i < MAX_OWNER_TABLE; i++)
         ListInit(&ownerTable[i].list);
-    memMngInit(sizeof(DEAD_LOCK_INFO));
+    memUnitCacheInit(sizeof(DEAD_LOCK_INFO));
 }
 
 /*brief: record the lock info to requestTable*/
