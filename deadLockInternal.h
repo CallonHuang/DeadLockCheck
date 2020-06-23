@@ -24,7 +24,7 @@ extern "C" {
 #define VISITED_BEFORE  (-2)
 
 #define VISIT_BITMASK    (1L)
-#define VISIT_KEY_OFFSET (4)
+#define VISIT_ID_OFFSET (4)
 
 typedef enum {
     UNVISITED = 0,

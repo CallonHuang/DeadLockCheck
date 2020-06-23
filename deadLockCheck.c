@@ -51,12 +51,11 @@ static void AfterLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
         if (currNode->lockAddr == lockAddr && currNode->pid == pid)
             break;
     }
-    /*if not found*/
     if (currNode != (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node) {
         ListDelete(&requestTable[requestIndex].list, (NODE *)currNode);
         pthread_mutex_unlock(&lockRecordMutex);
         FreeMemUnit(currNode);
-    } else {
+    } else {/*if not found*/
         pthread_mutex_unlock(&lockRecordMutex);
     }
     
@@ -87,7 +86,7 @@ int LockWithRecord(pthread_mutex_t *lockAddr, pid_t pid, int lockType, struct ti
             ListDelete(&requestTable[requestIndex].list, (NODE *)currNode);
             pthread_mutex_unlock(&lockRecordMutex);
             FreeMemUnit(currNode);
-        } else {
+        } else {/*if not found*/
             pthread_mutex_unlock(&lockRecordMutex);
         }
         
@@ -108,12 +107,11 @@ static void AfterUnlock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
         if (currNode->pid == pid && currNode->lockAddr == lockAddr)
             break;
     }
-    /*if not found*/
     if (currNode != (DEAD_LOCK_INFO *)&ownerTable[ownerIndex].list.node) {
         ListDelete(&ownerTable[ownerIndex].list, (NODE *)currNode);
         pthread_mutex_unlock(&lockRecordMutex);
         FreeMemUnit(currNode);
-    } else {
+    } else {/*if not found*/
         pthread_mutex_unlock(&lockRecordMutex);
     }
     
@@ -194,15 +192,15 @@ static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_
             ret = NOT_FOUND;
             /*must be has unvisited node*/
             if (UNVISITED == ((*targetNode)->visitTag & VISIT_BITMASK)) {
-                (*targetNode)->visitTag = (visitID << VISIT_KEY_OFFSET | VISIT_BITMASK);
+                (*targetNode)->visitTag = (visitID << VISIT_ID_OFFSET | VISIT_BITMASK);
                 break;
             }
         } else {
             if ((*targetNode)->pid == pid) {
                 if (UNVISITED == ((*targetNode)->visitTag & VISIT_BITMASK)) {
-                    (*targetNode)->visitTag = (visitID << VISIT_KEY_OFFSET | VISIT_BITMASK);
+                    (*targetNode)->visitTag = (visitID << VISIT_ID_OFFSET | VISIT_BITMASK);
                 } else {
-                    if ((*targetNode)->visitTag >> VISIT_KEY_OFFSET == visitID)
+                    if ((*targetNode)->visitTag >> VISIT_ID_OFFSET == visitID)
                         ret = REVISITED;
                     else
                         ret = VISITED_BEFORE;
