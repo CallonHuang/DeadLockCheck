@@ -1,10 +1,5 @@
 #ifndef _LIST_H_
 #define _LIST_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdlib.h>
 
 typedef struct node
@@ -19,8 +14,8 @@ typedef struct
     int count;
 }LIST;
 
-#define LIST_FOR_EACH(TYPE, cur, list_struct)  \
-for (cur = (TYPE *)list_struct.node.next; cur != (TYPE *)&list_struct.node; cur = (TYPE *)cur->list.node.next)
+#define LIST_FOR_EACH(TYPE, curr, list_struct)  \
+for (curr = (TYPE *)list_struct.node.next; curr != (TYPE *)&list_struct.node; curr = (TYPE *)curr->list.node.next)
 
 #define LIST_FREE_NODE(list, node) do{                                  \
                                         ListDelete(list, (NODE *)node); \
@@ -33,7 +28,4 @@ void ListAddTail(LIST *list, NODE *node);
 void ListDelete(LIST *list, NODE *node);
 void ListDestroy(LIST *list);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

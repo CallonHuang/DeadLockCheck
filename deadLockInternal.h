@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "list.h"
+#include "hashList.h"
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/syscall.h>
@@ -32,7 +32,7 @@ typedef enum {
 } VISIT_E;
 
 typedef struct {
-    LIST list;
+    HASH_NODE hashNode;
     int visitTag;
     /* data */
     void *lockAddr;

@@ -4,8 +4,8 @@
 #include <malloc.h>
 #include <stdio.h>
 
-static DEAD_LOCK_INFO requestTable[MAX_REQUEST_TABLE];
-static DEAD_LOCK_INFO ownerTable[MAX_OWNER_TABLE];
+static HASH_LIST requestTable[MAX_REQUEST_TABLE];
+static HASH_LIST ownerTable[MAX_OWNER_TABLE];
 static pthread_mutex_t lockRecordMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void DeadLockCheckInit(void)
@@ -14,9 +14,9 @@ static void DeadLockCheckInit(void)
     memset(requestTable, 0, sizeof(requestTable));
     memset(ownerTable, 0, sizeof(ownerTable));
     for (i = 0; i < MAX_REQUEST_TABLE; i++)
-        ListInit(&requestTable[i].list);
+        HListInit(&requestTable[i]);
     for (i = 0; i < MAX_OWNER_TABLE; i++)
-        ListInit(&ownerTable[i].list);
+        HListInit(&ownerTable[i]);
     memUnitCacheInit(sizeof(DEAD_LOCK_INFO));
 }
 
@@ -31,7 +31,7 @@ static void BeforeLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     newNode->pid = pid;
     newNode->retFuncAddr = retFuncAddr;
     pthread_mutex_lock(&lockRecordMutex);
-    ListAddTail(&requestTable[requestIndex].list, (NODE *)newNode);
+    HListAddHead(&requestTable[requestIndex], (HASH_NODE *)newNode);
     pthread_mutex_unlock(&lockRecordMutex);
 }
 
@@ -46,13 +46,13 @@ static void AfterLock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     newNode->lockAddr = (void *)lockAddr;
     newNode->retFuncAddr = retFuncAddr;
     pthread_mutex_lock(&lockRecordMutex);
-    ListAddTail(&ownerTable[ownerIndex].list, (NODE *)newNode);
-    LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex].list) {
+    HListAddHead(&ownerTable[ownerIndex], (HASH_NODE *)newNode);
+    HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex]) {
         if (currNode->lockAddr == lockAddr && currNode->pid == pid)
             break;
     }
-    if (currNode != (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node) {
-        ListDelete(&requestTable[requestIndex].list, (NODE *)currNode);
+    if (currNode != NULL) {
+        HListDelete(&requestTable[requestIndex], (HASH_NODE *)currNode);
         pthread_mutex_unlock(&lockRecordMutex);
         FreeMemUnit(currNode);
     } else {/*if not found*/
@@ -78,12 +78,12 @@ int LockWithRecord(pthread_mutex_t *lockAddr, pid_t pid, int lockType, struct ti
         unsigned int requestIndex = Hash32((unsigned long)pid, MAX_HASH_BITS);
         pthread_mutex_lock(&lockRecordMutex);
         /*clear the node that insert by [BeforeLock] just now*/
-        LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex].list) {
+        HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex]) {
             if (currNode->lockAddr == lockAddr && currNode->pid == pid)
                 break;
         }
-        if (currNode != (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node) {
-            ListDelete(&requestTable[requestIndex].list, (NODE *)currNode);
+        if (currNode != NULL) {
+            HListDelete(&requestTable[requestIndex], (HASH_NODE *)currNode);
             pthread_mutex_unlock(&lockRecordMutex);
             FreeMemUnit(currNode);
         } else {/*if not found*/
@@ -103,12 +103,12 @@ static void AfterUnlock(pthread_mutex_t *lockAddr, pid_t pid, void *retFuncAddr)
     DEAD_LOCK_INFO *currNode;
     unsigned int ownerIndex = Hash32((unsigned long)lockAddr, MAX_HASH_BITS);
     pthread_mutex_lock(&lockRecordMutex);
-    LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, ownerTable[ownerIndex].list) {
+    HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, ownerTable[ownerIndex]) {
         if (currNode->pid == pid && currNode->lockAddr == lockAddr)
             break;
     }
-    if (currNode != (DEAD_LOCK_INFO *)&ownerTable[ownerIndex].list.node) {
-        ListDelete(&ownerTable[ownerIndex].list, (NODE *)currNode);
+    if (currNode != NULL) {
+        HListDelete(&ownerTable[ownerIndex], (HASH_NODE *)currNode);
         pthread_mutex_unlock(&lockRecordMutex);
         FreeMemUnit(currNode);
     } else {/*if not found*/
@@ -127,14 +127,14 @@ int UnlockWithRecord(pthread_mutex_t *lockAddr, pid_t pid)
 }
 
 /*insert a node to traceStackList, that record your access footprint*/
-static void InsertStack(DEAD_LOCK_INFO *traceStackList, pid_t pid, void *lockAddr, void * retFuncAddr) 
+static void InsertStack(HASH_LIST *traceStackList, pid_t pid, void *lockAddr, void * retFuncAddr) 
 {
     DEAD_LOCK_INFO *newNode = NULL;
     newNode = (DEAD_LOCK_INFO *)malloc(sizeof(DEAD_LOCK_INFO));
     newNode->pid = pid;
     newNode->retFuncAddr = retFuncAddr;
     newNode->lockAddr = lockAddr;
-    ListAddTail(&traceStackList->list, (NODE *)newNode);
+    HListAddHead(traceStackList, (HASH_NODE *)newNode);
 }
 
 /*initialize all of node to be not visited*/
@@ -143,8 +143,8 @@ static void ClearRequestVisit()
     int requestIndex = 0;
     DEAD_LOCK_INFO *currNode = NULL;
     for (requestIndex = 0; requestIndex < MAX_REQUEST_TABLE; requestIndex++) {
-        if (requestTable[requestIndex].list.count != 0) {
-            LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex].list) {
+        if (requestTable[requestIndex].count != 0) {
+            HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, requestTable[requestIndex]) {
                 currNode->visitTag = UNVISITED;
             }
         }
@@ -163,7 +163,7 @@ static int SelectRequest(int *visitArray)
 {
     int requestIndex = 0;
     for (requestIndex = 0; requestIndex < MAX_REQUEST_TABLE; requestIndex++) {
-        if (requestTable[requestIndex].list.count != 0 && visitArray[requestIndex] < requestTable[requestIndex].list.count)
+        if (requestTable[requestIndex].count != 0 && visitArray[requestIndex] < requestTable[requestIndex].count)
             break;
     }
     return requestIndex;
@@ -187,7 +187,7 @@ static int SelectRequest(int *visitArray)
 static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_INFO **targetNode, int visitID)
 {
     int ret = NOT_FOUND;
-    LIST_FOR_EACH(DEAD_LOCK_INFO, (*targetNode), requestTable[requestIndex].list) {
+    HLIST_FOR_EACH(DEAD_LOCK_INFO, (*targetNode), requestTable[requestIndex]) {
         if (UNSPECIFIED_PID == pid) {
             ret = NOT_FOUND;
             /*must be has unvisited node*/
@@ -213,7 +213,7 @@ static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_
         
     }
     /*find the last but 'NOT_FOUND' or returned the node that you visit before*/
-    if (*targetNode == (DEAD_LOCK_INFO *)&requestTable[requestIndex].list.node || 0 > ret)
+    if (*targetNode == NULL || 0 > ret)
         return ret;
 
     visitArray[requestIndex]++;
@@ -234,15 +234,16 @@ static int VisitRequest(int requestIndex, pid_t pid, int *visitArray, DEAD_LOCK_
 */
 static int RequestTrace(int requestIndex, int *visitArray, int visitID)
 {
-    DEAD_LOCK_INFO *targetNode = NULL, *currNode = NULL, traceStackList;
+    DEAD_LOCK_INFO *targetNode = NULL, *currNode = NULL;
+    HASH_LIST traceStackList;
     int ownerIndex = 0, ret = OK;
     pid_t pid = UNSPECIFIED_PID;
-    ListInit(&traceStackList.list);
+    HListInit(&traceStackList);
     do {
         if (OK != (ret = VisitRequest(requestIndex, pid, visitArray, &targetNode, visitID))) {
             if (UNSPECIFIED_PID == pid) {
                 /*to prevent you use the same requestIndex again and again*/
-                visitArray[requestIndex] = requestTable[requestIndex].list.count;
+                visitArray[requestIndex] = requestTable[requestIndex].count;
                 break;
             }
             if (NULL != currNode)
@@ -251,8 +252,8 @@ static int RequestTrace(int requestIndex, int *visitArray, int visitID)
                 printf("request wait owner as below:\n");
             else
                 printf("find lock circle as below:\n");
-            LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, traceStackList.list) {
-                if (currNode != (DEAD_LOCK_INFO *)traceStackList.list.node.next)
+            HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, traceStackList) {
+                if (currNode != (void *)traceStackList.hashHead.first)
                     printf("->");
                 printf("[pid: %d func: %p]", currNode->pid, currNode->retFuncAddr);
             }
@@ -261,12 +262,12 @@ static int RequestTrace(int requestIndex, int *visitArray, int visitID)
         }
         InsertStack(&traceStackList, targetNode->pid, targetNode->lockAddr, targetNode->retFuncAddr);
         ownerIndex = Hash32((unsigned long)targetNode->lockAddr, MAX_HASH_BITS);
-        LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, ownerTable[ownerIndex].list) {
+        HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, ownerTable[ownerIndex]) {
             if (currNode->lockAddr == targetNode->lockAddr)
                 break;
         }
         
-        if (currNode != (DEAD_LOCK_INFO *)&ownerTable[ownerIndex].list.node) {
+        if (currNode != (DEAD_LOCK_INFO *)&ownerTable[ownerIndex].hashHead.first) {
             pid = currNode->pid;
             requestIndex = Hash32((unsigned long)currNode->pid, MAX_HASH_BITS);
         } else {
@@ -275,18 +276,18 @@ static int RequestTrace(int requestIndex, int *visitArray, int visitID)
             break;
         }
     } while (1);
-    ListDestroy(&traceStackList.list);
+    HListDestroy(&traceStackList);
     return ret;
 }
 
-static void PrtTable(DEAD_LOCK_INFO *table, unsigned int size)
+static void PrtTable(HASH_LIST *table, unsigned int size)
 {
     DEAD_LOCK_INFO *currNode;
     int Index = 0;
     for (Index = 0; Index < size; Index++) {
-        if (table[Index].list.count != 0) {
+        if (table[Index].count != 0) {
             printf("[%d] ", Index);
-            LIST_FOR_EACH(DEAD_LOCK_INFO, currNode, table[Index].list) {
+            HLIST_FOR_EACH(DEAD_LOCK_INFO, currNode, table[Index]) {
                 printf("|pid: %d addr: %p func: %p|", currNode->pid, currNode->lockAddr, currNode->retFuncAddr);
             }
             printf("\n");
