@@ -8,5 +8,5 @@ gcc -Wall -g -shared -fPIC -o libDeadLockCheck.so deadLockCheck.o memUnitCache.o
 if [ $? -ne 0 ];then
     exit -1;
 fi
-sudo cp libDeadLockCheck.so /usr/lib
+#sudo cp libDeadLockCheck.so /usr/lib
 gcc -g -Wall main.c -L./ -o main -lDeadLockCheck -lpthread
